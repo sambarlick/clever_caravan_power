@@ -12,6 +12,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
+    BINARY_SENSOR_DEFS,
     CONF_PORTAL_ID,
     CONF_USE_SSL,
     DOMAIN,
@@ -30,6 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [
     Platform.SENSOR,
+    Platform.BINARY_SENSOR,
     Platform.SWITCH,
     Platform.SELECT,
     Platform.NUMBER,
@@ -38,12 +40,14 @@ PLATFORMS = [
 
 # Index definitions by (service, path) for O(1) lookup on every MQTT message.
 _DEFS_BY_TOPIC: dict[tuple[str, str], list] = {}
-for _def in (*SENSOR_DEFS, *SELECT_DEFS, *NUMBER_DEFS):
+for _def in (*SENSOR_DEFS, *BINARY_SENSOR_DEFS, *SELECT_DEFS, *NUMBER_DEFS):
     _DEFS_BY_TOPIC.setdefault((_def.service, _def.path), []).append(_def)
 
 _PLATFORM_OF = {}
 for _d in SENSOR_DEFS:
     _PLATFORM_OF[_d.key] = "sensor"
+for _d in BINARY_SENSOR_DEFS:
+    _PLATFORM_OF[_d.key] = "binary_sensor"
 for _d in SELECT_DEFS:
     _PLATFORM_OF[_d.key] = "select"
 for _d in NUMBER_DEFS:
@@ -57,10 +61,22 @@ class CcpData:
         self.hass = hass
         self.entry = entry
         self.hub = hub
-        # discovered: set of (def_key, instance) already announced
-        self.discovered: set[tuple[str, str]] = set()
-        self.relay_instances: set[str] = set()
+        # discovered[(def_key, instance)] = (platform, vdef, instance, extra)
+        # Persisted so platforms can REPLAY announcements that arrived before
+        # they finished setting up — discovery is not fire-and-forget.
+        self.discovered: dict[tuple[str, str], tuple] = {}
+        # Claimed (created) entities, guarded so replay + live signals can
+        # never double-add: claimed by (platform, def_key, instance).
+        self._claimed: set[tuple[str, str, str]] = set()
         self._unsub_keepalive = None
+
+    def claim(self, platform: str, def_key: str, instance: str) -> bool:
+        """Return True exactly once per entity — the caller may create it."""
+        key = (platform, def_key, instance)
+        if key in self._claimed:
+            return False
+        self._claimed.add(key)
+        return True
 
     # Called from the paho network thread — hop onto the event loop.
     def thread_on_value(self, service: str, instance: str, path: str, value) -> None:
@@ -83,11 +99,9 @@ class CcpData:
             relay = path.split("/")[1]
             disc_key = ("relay", relay)
             if disc_key not in self.discovered:
-                self.discovered.add(disc_key)
-                async_dispatcher_send(
-                    self.hass, SIGNAL_NEW_ENTITY.format(eid), "switch", SWITCH_DEFS[0],
-                    instance, {"relay": relay},
-                )
+                announcement = ("switch", SWITCH_DEFS[0], instance, {"relay": relay})
+                self.discovered[disc_key] = announcement
+                async_dispatcher_send(self.hass, SIGNAL_NEW_ENTITY.format(eid), *announcement)
             async_dispatcher_send(
                 self.hass, SIGNAL_VALUE.format(eid, f"relay_{relay}"), value
             )
@@ -102,11 +116,9 @@ class CcpData:
         for vdef in defs:
             disc_key = (vdef.key, instance)
             if disc_key not in self.discovered:
-                self.discovered.add(disc_key)
-                async_dispatcher_send(
-                    self.hass, SIGNAL_NEW_ENTITY.format(eid),
-                    _PLATFORM_OF[vdef.key], vdef, instance, None,
-                )
+                announcement = (_PLATFORM_OF[vdef.key], vdef, instance, None)
+                self.discovered[disc_key] = announcement
+                async_dispatcher_send(self.hass, SIGNAL_NEW_ENTITY.format(eid), *announcement)
             async_dispatcher_send(
                 self.hass, SIGNAL_VALUE.format(eid, f"{vdef.key}_{instance}"), value
             )

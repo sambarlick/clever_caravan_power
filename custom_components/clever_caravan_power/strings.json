@@ -26,8 +26,9 @@
       "init": {
         "title": "Clever Caravan: Power options",
         "data": {
-          "current_limit_min": "Input current limit — minimum (A)",
-          "current_limit_max": "Input current limit — maximum (A)"
+          "current_limit_min": "Input current limit \u2014 minimum (A)",
+          "current_limit_max": "Input current limit \u2014 maximum (A)",
+          "ssh_key_path": "SSH private key path (for Reboot SSH button)"
         }
       }
     }

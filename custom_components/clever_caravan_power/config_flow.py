@@ -14,10 +14,12 @@ from .const import (
     CONF_CURRENT_LIMIT_MAX,
     CONF_CURRENT_LIMIT_MIN,
     CONF_PORTAL_ID,
+    CONF_SSH_KEY,
     CONF_USE_SSL,
     DEFAULT_CURRENT_LIMIT_MAX,
     DEFAULT_CURRENT_LIMIT_MIN,
     DEFAULT_HOST,
+    DEFAULT_SSH_KEY,
     DEFAULT_PORT,
     DOMAIN,
 )
@@ -106,6 +108,10 @@ class CcpOptionsFlow(config_entries.OptionsFlow):
                     CONF_CURRENT_LIMIT_MAX,
                     default=options.get(CONF_CURRENT_LIMIT_MAX, DEFAULT_CURRENT_LIMIT_MAX),
                 ): vol.Coerce(float),
+                vol.Required(
+                    CONF_SSH_KEY,
+                    default=options.get(CONF_SSH_KEY, DEFAULT_SSH_KEY),
+                ): str,
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

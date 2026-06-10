@@ -4,11 +4,10 @@ from __future__ import annotations
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, RELAY_NAMES, SIGNAL_NEW_ENTITY
-from .entity import CcpEntity
+from .const import DOMAIN, RELAY_NAMES
+from .entity import CcpEntity, async_setup_discovery
 
 
 async def async_setup_entry(
@@ -17,16 +16,10 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     @callback
-    def _async_new_entity(platform: str, vdef, instance: str, extra) -> None:
-        if platform != "switch":
-            return
+    def _factory(vdef, instance: str, extra) -> None:
         async_add_entities([CcpRelaySwitch(data, vdef, instance, extra["relay"])])
 
-    entry.async_on_unload(
-        async_dispatcher_connect(
-            hass, SIGNAL_NEW_ENTITY.format(entry.entry_id), _async_new_entity
-        )
-    )
+    async_setup_discovery(hass, entry, data, "switch", _factory)
 
 
 class CcpRelaySwitch(CcpEntity, SwitchEntity):

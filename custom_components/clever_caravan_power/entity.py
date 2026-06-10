@@ -6,7 +6,36 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity, EntityCategory
 
-from .const import DEV_GX, DEVICE_NAMES, DOMAIN, MANUFACTURER, SIGNAL_CONNECTION, SIGNAL_VALUE
+from .const import DEV_GX, DEVICE_NAMES, DOMAIN, MANUFACTURER, SIGNAL_CONNECTION, SIGNAL_NEW_ENTITY, SIGNAL_VALUE
+
+
+def async_setup_discovery(hass, entry, data, platform: str, factory) -> None:
+    """Wire a platform into discovery: live signals + replay of missed ones.
+
+    Announcements can arrive (from the Cerbo's full publish) before a
+    platform finishes loading, so after subscribing we replay everything
+    already discovered. The data.claim() guard ensures each entity is
+    created exactly once regardless of whether replay or a live signal
+    gets there first.
+    """
+    from homeassistant.core import callback as _callback
+
+    @_callback
+    def _async_new_entity(announce_platform: str, vdef, instance: str, extra) -> None:
+        if announce_platform != platform:
+            return
+        if not data.claim(platform, vdef.key, instance if extra is None else str(extra)):
+            return
+        factory(vdef, instance, extra)
+
+    entry.async_on_unload(
+        async_dispatcher_connect(
+            hass, SIGNAL_NEW_ENTITY.format(entry.entry_id), _async_new_entity
+        )
+    )
+    # Replay announcements that fired before this platform subscribed.
+    for announcement in list(data.discovered.values()):
+        _async_new_entity(*announcement)
 
 
 class _SafeDict(dict):

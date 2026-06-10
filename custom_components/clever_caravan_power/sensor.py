@@ -6,7 +6,6 @@ import logging
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 
@@ -15,10 +14,9 @@ from .const import (
     AGG_SOLAR_POWER,
     DEV_SOLAR,
     DOMAIN,
-    SIGNAL_NEW_ENTITY,
     VSensorDef,
 )
-from .entity import CcpEntity
+from .entity import CcpEntity, async_setup_discovery
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,10 +49,8 @@ async def async_setup_entry(
     aggregates_added = False
 
     @callback
-    def _async_new_entity(platform: str, vdef, instance: str, extra) -> None:
+    def _factory(vdef, instance: str, extra) -> None:
         nonlocal aggregates_added
-        if platform != "sensor":
-            return
         entities = [CcpSensor(data, vdef, instance, f"{vdef.key}_{instance}")]
         # First solar charger seen -> create the fleet aggregates.
         if not aggregates_added and vdef.service == "solarcharger":
@@ -63,11 +59,7 @@ async def async_setup_entry(
             entities.append(CcpSolarAggregate(data, AGG_SOLAR_ENERGY))
         async_add_entities(entities)
 
-    entry.async_on_unload(
-        async_dispatcher_connect(
-            hass, SIGNAL_NEW_ENTITY.format(entry.entry_id), _async_new_entity
-        )
-    )
+    async_setup_discovery(hass, entry, data, "sensor", _factory)
 
 
 class CcpSensor(CcpEntity, SensorEntity):

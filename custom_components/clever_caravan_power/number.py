@@ -4,7 +4,6 @@ from __future__ import annotations
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -13,9 +12,8 @@ from .const import (
     DEFAULT_CURRENT_LIMIT_MAX,
     DEFAULT_CURRENT_LIMIT_MIN,
     DOMAIN,
-    SIGNAL_NEW_ENTITY,
 )
-from .entity import CcpEntity
+from .entity import CcpEntity, async_setup_discovery
 
 
 async def async_setup_entry(
@@ -24,16 +22,10 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
 
     @callback
-    def _async_new_entity(platform: str, vdef, instance: str, extra) -> None:
-        if platform != "number":
-            return
+    def _factory(vdef, instance: str, extra) -> None:
         async_add_entities([CcpNumber(data, vdef, instance)])
 
-    entry.async_on_unload(
-        async_dispatcher_connect(
-            hass, SIGNAL_NEW_ENTITY.format(entry.entry_id), _async_new_entity
-        )
-    )
+    async_setup_discovery(hass, entry, data, "number", _factory)
 
 
 class CcpNumber(CcpEntity, NumberEntity):

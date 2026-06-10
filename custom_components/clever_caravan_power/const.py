@@ -10,6 +10,8 @@ CONF_PORTAL_ID = "portal_id"
 CONF_USE_SSL = "use_ssl"
 CONF_CURRENT_LIMIT_MIN = "current_limit_min"
 CONF_CURRENT_LIMIT_MAX = "current_limit_max"
+CONF_SSH_KEY = "ssh_key_path"
+DEFAULT_SSH_KEY = "/config/.ssh/id_rsa"
 
 DEFAULT_PORT = 1883
 DEFAULT_HOST = "venus.local"
@@ -253,6 +255,39 @@ class VSelectDef:
 SELECT_DEFS: tuple[VSelectDef, ...] = (
     VSelectDef("inverter_mode", "vebus", "Mode", "Inverter Mode",
                INVERTER_MODE_MAP, DEV_GX, "mdi:power-settings"),
+)
+
+
+@dataclass(frozen=True)
+class VBinarySensorDef:
+    """A Venus dbus path mapped to an HA binary sensor via a predicate."""
+
+    key: str
+    service: str
+    path: str
+    name: str
+    predicate: str  # "gt:<n>" or "eq:<n>"
+    device: str = DEV_GX
+    device_class: str | None = None
+    icon: str | None = None
+    expire: int | None = None
+    enabled_default: bool = True
+
+
+BINARY_SENSOR_DEFS: tuple[VBinarySensorDef, ...] = (
+    # True whenever the shore lead is physically plugged in (AC input present),
+    # even at zero draw — the Multiplus reports this directly.
+    VBinarySensorDef("shore_connected", "vebus", "Ac/ActiveIn/Connected",
+                     "Shore Power Connected", "eq:1", DEV_GX, "plug"),
+    # Faithful port of Sam's template: grid power actually flowing (> 0 W).
+    VBinarySensorDef("shore_active", "system", "Ac/Grid/L1/Power",
+                     "Shore Power Active", "gt:0", DEV_GX, "power"),
+    VBinarySensorDef("alt_charging", "alternator", "Dc/0/Power",
+                     "Alternator {instance} Charging", "gt:0", DEV_ALTERNATOR,
+                     "battery_charging", expire=10, enabled_default=False),
+    VBinarySensorDef("inverter_inverting", "vebus", "State",
+                     "Inverter Inverting", "eq:9", DEV_GX, "running",
+                     enabled_default=False),
 )
 
 
