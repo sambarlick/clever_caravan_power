@@ -1,0 +1,12 @@
+{
+  "domain": "clever_caravan_power",
+  "name": "Clever Caravan: Power",
+  "codeowners": ["@sambarlick"],
+  "config_flow": true,
+  "documentation": "https://github.com/sambarlick/clever_caravan_power",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/sambarlick/clever_caravan_power/issues",
+  "requirements": ["paho-mqtt>=1.6.1"],
+  "version": "0.1.0"
+}

@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to your Victron GX device",
+        "description": "Enter the address of the Cerbo GX (or other Venus OS device). The portal ID is detected automatically.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "username": "Username (optional)",
+          "password": "Password (optional)",
+          "use_ssl": "Use SSL (port 8883)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the MQTT broker. Check the address and that MQTT is enabled on the GX device.",
+      "no_portal": "Connected, but no Venus portal was detected. Is this a Victron GX device?"
+    },
+    "abort": {
+      "already_configured": "This GX device is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Clever Caravan: Power options",
+        "data": {
+          "current_limit_min": "Input current limit — minimum (A)",
+          "current_limit_max": "Input current limit — maximum (A)"
+        }
+      }
+    }
+  }
+}

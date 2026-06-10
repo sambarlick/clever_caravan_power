@@ -1,0 +1,52 @@
+"""Select platform for Clever Caravan: Power (inverter mode)."""
+from __future__ import annotations
+
+from homeassistant.components.select import SelectEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import DOMAIN, SIGNAL_NEW_ENTITY
+from .entity import CcpEntity
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
+    data = hass.data[DOMAIN][entry.entry_id]
+
+    @callback
+    def _async_new_entity(platform: str, vdef, instance: str, extra) -> None:
+        if platform != "select":
+            return
+        async_add_entities([CcpSelect(data, vdef, instance)])
+
+    entry.async_on_unload(
+        async_dispatcher_connect(
+            hass, SIGNAL_NEW_ENTITY.format(entry.entry_id), _async_new_entity
+        )
+    )
+
+
+class CcpSelect(CcpEntity, SelectEntity):
+    """A mapped Venus enum exposed as a select."""
+
+    def __init__(self, data, vdef, instance: str) -> None:
+        super().__init__(data, vdef, instance, f"{vdef.key}_{instance}")
+        self._map = vdef.options_map
+        self._reverse = {v: k for k, v in vdef.options_map.items()}
+        self._attr_options = list(vdef.options_map.values())
+        self._apply_value(self._hub.get(vdef.service, instance, vdef.path))
+
+    @callback
+    def _apply_value(self, value) -> None:
+        try:
+            self._attr_current_option = self._map.get(int(value))
+        except (TypeError, ValueError):
+            self._attr_current_option = None
+
+    async def async_select_option(self, option: str) -> None:
+        self._hub.set_value(
+            self._def.service, self._instance, self._def.path, self._reverse[option]
+        )
