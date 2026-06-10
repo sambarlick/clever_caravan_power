@@ -96,6 +96,9 @@ class CcpData:
         defs = _DEFS_BY_TOPIC.get((service, path))
         if not defs:
             return
+        # Any solar yield update also feeds the Total Solar aggregates.
+        if service == "solarcharger" and path in ("Yield/Power", "Yield/User"):
+            async_dispatcher_send(self.hass, SIGNAL_VALUE.format(eid, "sc_aggregate"), value)
         for vdef in defs:
             disc_key = (vdef.key, instance)
             if disc_key not in self.discovered:

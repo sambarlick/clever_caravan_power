@@ -142,34 +142,16 @@ class CcpSolarAggregate(CcpEntity, SensorEntity):
 
     def __init__(self, data, agg_key: str) -> None:
         vdef = _AGG_META[agg_key]
-        super().__init__(data, vdef, "all", agg_key)
+        # Subscribes to the dedicated aggregate signal sent by the hub glue
+        # whenever ANY charger's yield updates — chargers discovered later
+        # are included automatically.
+        super().__init__(data, vdef, "all", "sc_aggregate")
         self._attr_unique_id = f"{self._hub.portal_id}_{agg_key}"
         self._attr_native_unit_of_measurement = vdef.unit
         self._attr_device_class = vdef.device_class
         self._attr_state_class = vdef.state_class
         self._attr_suggested_display_precision = vdef.suggested_precision
         self._recompute()
-
-    async def async_added_to_hass(self) -> None:
-        await super().async_added_to_hass()
-        # Also recompute when any individual charger updates.
-        from .const import SIGNAL_VALUE  # local import avoids cycle at module load
-
-        eid = self._data.entry.entry_id
-        per_charger_key = "sc_power" if self._def.key == AGG_SOLAR_POWER else "sc_energy"
-        for instance in self._hub.instances_of("solarcharger"):
-            self.async_on_remove(
-                async_dispatcher_connect(
-                    self.hass,
-                    SIGNAL_VALUE.format(eid, f"{per_charger_key}_{instance}"),
-                    self._handle_update,
-                )
-            )
-
-    @callback
-    def _handle_update(self, _value) -> None:
-        self._recompute()
-        self.async_write_ha_state()
 
     @callback
     def _apply_value(self, value) -> None:

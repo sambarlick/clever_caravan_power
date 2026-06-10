@@ -45,6 +45,7 @@ class VenusHub:
         self.portal_id = portal_id
         self.connected = False
         self.last_heartbeat: float = 0.0
+        self._stopping = False
 
         # values[(service, instance, path)] = raw value
         self.values: dict[tuple[str, str, str], object] = {}
@@ -88,6 +89,7 @@ class VenusHub:
         self._client.loop_start()
 
     def stop(self) -> None:
+        self._stopping = True
         self._client.loop_stop()
         try:
             self._client.disconnect()
@@ -151,7 +153,12 @@ class VenusHub:
 
     def _on_disconnect(self, client, userdata, *args, **kwargs):
         self.connected = False
-        _LOGGER.warning("Disconnected from Venus MQTT at %s", self.host)
+        if self._stopping:
+            _LOGGER.debug("Disconnected from Venus MQTT at %s (shutdown)", self.host)
+        else:
+            _LOGGER.warning(
+                "Disconnected from Venus MQTT at %s — reconnecting automatically", self.host
+            )
         if self.on_connection:
             self.on_connection(False)
 

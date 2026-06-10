@@ -9,6 +9,13 @@ from homeassistant.helpers.entity import Entity, EntityCategory
 from .const import DEV_GX, DEVICE_NAMES, DOMAIN, MANUFACTURER, SIGNAL_CONNECTION, SIGNAL_VALUE
 
 
+class _SafeDict(dict):
+    """format_map helper — unknown placeholders become empty strings."""
+
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
 class CcpEntity(Entity):
     """Common behaviour: device grouping, availability, value updates."""
 
@@ -23,7 +30,7 @@ class CcpEntity(Entity):
         self._value_key = value_key
         portal = self._hub.portal_id
         self._attr_unique_id = f"{portal}_{vdef.key}_{instance}"
-        self._attr_name = vdef.name.format(instance=instance)
+        self._attr_name = vdef.name.format_map(_SafeDict(instance=instance)).strip()
         if getattr(vdef, "icon", None):
             self._attr_icon = vdef.icon
         if getattr(vdef, "entity_category", None) == "diagnostic":
