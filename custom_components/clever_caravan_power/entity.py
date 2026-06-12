@@ -67,6 +67,12 @@ class CcpEntity(Entity):
         if getattr(vdef, "enabled_default", True) is False:
             self._attr_entity_registry_enabled_default = False
 
+        custom_tpl = getattr(vdef, "custom_name", None)
+        if custom_tpl:
+            custom = self._hub.get(vdef.service, instance, "CustomName")
+            if custom:
+                self._attr_name = custom_tpl.format(custom=custom)
+
         device = getattr(vdef, "device", DEV_GX)
         dev_id = f"{portal}_{device}"
         info = DeviceInfo(
@@ -90,11 +96,27 @@ class CcpEntity(Entity):
                 self.hass, SIGNAL_VALUE.format(eid, self._value_key), self._handle_update
             )
         )
+        if getattr(self._def, "custom_name", None):
+            self.async_on_remove(
+                async_dispatcher_connect(
+                    self.hass,
+                    SIGNAL_VALUE.format(
+                        eid, f"customname_{self._def.service}_{self._instance}"
+                    ),
+                    self._handle_custom_name,
+                )
+            )
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass, SIGNAL_CONNECTION.format(eid), self._handle_connection
             )
         )
+
+    @callback
+    def _handle_custom_name(self, custom) -> None:
+        if custom:
+            self._attr_name = self._def.custom_name.format(custom=custom)
+            self.async_write_ha_state()
 
     @callback
     def _handle_connection(self, _connected: bool) -> None:

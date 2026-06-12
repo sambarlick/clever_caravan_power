@@ -19,14 +19,27 @@
           "relay_0_name": "Relay 1 name",
           "relay_1_name": "Relay 2 name"
         }
+      },
+      "reconfigure": {
+        "title": "Update GX device connection",
+        "description": "Change the address or credentials of this GX device (e.g. if its IP address changed). The device identity must match the original.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "username": "Username (optional)",
+          "password": "Password (optional)",
+          "use_ssl": "Use SSL (port 8883)"
+        }
       }
     },
     "error": {
       "cannot_connect": "Could not connect to the MQTT broker. Check the address and that MQTT is enabled on the GX device.",
-      "no_portal": "Connected, but no Venus portal was detected. Is this a Victron GX device?"
+      "no_portal": "Connected, but no Venus portal was detected. Is this a Victron GX device?",
+      "different_device": "Connected, but that is a different GX device (portal ID mismatch). Add it as a new integration entry instead."
     },
     "abort": {
-      "already_configured": "This GX device is already configured."
+      "already_configured": "This GX device is already configured.",
+      "reconfigure_successful": "Connection details updated."
     }
   },
   "options": {

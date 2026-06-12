@@ -108,6 +108,7 @@ class VSensorDef:
     enabled_default: bool = True
     suggested_precision: int | None = None
     none_as_zero: bool = False  # Venus publishes null when source absent
+    custom_name: str | None = None  # template using {custom} from Venus CustomName
 
 
 SENSOR_DEFS: tuple[VSensorDef, ...] = (
@@ -147,9 +148,11 @@ SENSOR_DEFS: tuple[VSensorDef, ...] = (
                suggested_precision=0),
     # ------------------------------------------------------------- temperature
     VSensorDef("temp", "temperature", "Temperature", "Temperature {instance}",
-               DEV_GX, "°C", "temperature", "measurement"),
+               DEV_GX, "°C", "temperature", "measurement",
+               custom_name="{custom} Temperature"),
     VSensorDef("temp_humidity", "temperature", "Humidity", "Humidity {instance}",
-               DEV_GX, "%", "humidity", "measurement", enabled_default=False),
+               DEV_GX, "%", "humidity", "measurement", enabled_default=False,
+               custom_name="{custom} Humidity"),
     # ------------------------------------------------------------------- vebus
     VSensorDef("inverter_state", "vebus", "State", "Inverter State",
                DEV_GX, icon="mdi:lightning-bolt", options_map=VEBUS_STATE_MAP),
@@ -199,17 +202,19 @@ SENSOR_DEFS: tuple[VSensorDef, ...] = (
     # -------------------------------------------------------------------- tank
     VSensorDef("tank_level", "tank", "Level", "Tank {instance} Level",
                DEV_TANKS, "%", None, "measurement", "mdi:water-percent",
-               suggested_precision=0),
+               suggested_precision=0, custom_name="{custom} Level"),
     VSensorDef("tank_remaining", "tank", "Remaining", "Tank {instance} Remaining",
                DEV_TANKS, "L", "volume_storage", "measurement",
-               "mdi:car-coolant-level", transform="m3_to_l", suggested_precision=1),
+               "mdi:car-coolant-level", transform="m3_to_l", suggested_precision=1,
+               custom_name="{custom} Remaining"),
     VSensorDef("tank_capacity", "tank", "Capacity", "Tank {instance} Capacity",
                DEV_TANKS, "L", "volume_storage", None, "mdi:car-coolant-level",
                transform="m3_to_l", entity_category="diagnostic",
-               enabled_default=False),
+               enabled_default=False, custom_name="{custom} Capacity"),
     VSensorDef("tank_fluid", "tank", "FluidType", "Tank {instance} Fluid Type",
                DEV_TANKS, icon="mdi:water", options_map=FLUID_TYPE_MAP,
-               entity_category="diagnostic", enabled_default=False),
+               entity_category="diagnostic", enabled_default=False,
+               custom_name="{custom} Fluid Type"),
     # ----------------------------------------------------- battery monitor svc
     VSensorDef("bm_voltage", "battery", "Dc/0/Voltage", "Battery Monitor {instance} Voltage",
                DEV_BATTERY, "V", "voltage", "measurement", enabled_default=False,

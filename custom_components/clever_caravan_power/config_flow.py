@@ -93,6 +93,41 @@ class CcpConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Change connection details (e.g. the Cerbo's IP) for an existing entry."""
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                portal_id = await self.hass.async_add_executor_job(_probe, user_input)
+            except OSError:
+                portal_id = None
+                errors["base"] = "cannot_connect"
+            if portal_id:
+                if entry.unique_id and portal_id != entry.unique_id:
+                    errors["base"] = "different_device"
+                else:
+                    new_data = {**entry.data, **user_input, CONF_PORTAL_ID: portal_id}
+                    self.hass.config_entries.async_update_entry(entry, data=new_data)
+                    await self.hass.config_entries.async_reload(entry.entry_id)
+                    return self.async_abort(reason="reconfigure_successful")
+            errors.setdefault("base", "no_portal")
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_HOST, default=entry.data.get(CONF_HOST, DEFAULT_HOST)): str,
+                vol.Required(CONF_PORT, default=entry.data.get(CONF_PORT, DEFAULT_PORT)): int,
+                vol.Optional(CONF_USERNAME, default=entry.data.get(CONF_USERNAME, "")): str,
+                vol.Optional(CONF_PASSWORD, default=entry.data.get(CONF_PASSWORD, "")): str,
+                vol.Optional(CONF_USE_SSL, default=entry.data.get(CONF_USE_SSL, False)): bool,
+            }
+        )
+        return self.async_show_form(
+            step_id="reconfigure", data_schema=schema, errors=errors
+        )
+
     async def async_step_relays(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:

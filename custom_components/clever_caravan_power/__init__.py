@@ -107,6 +107,14 @@ class CcpData:
             )
             return
 
+        if path == "CustomName":
+            async_dispatcher_send(
+                self.hass,
+                SIGNAL_VALUE.format(eid, f"customname_{service}_{instance}"),
+                value,
+            )
+            return
+
         defs = _DEFS_BY_TOPIC.get((service, path))
         if not defs:
             return
