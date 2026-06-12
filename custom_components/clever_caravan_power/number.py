@@ -36,12 +36,16 @@ class CcpNumber(CcpEntity, NumberEntity):
     def __init__(self, data, vdef, instance: str) -> None:
         super().__init__(data, vdef, instance, f"{vdef.key}_{instance}")
         options = data.entry.options
-        self._attr_native_min_value = options.get(
-            CONF_CURRENT_LIMIT_MIN, DEFAULT_CURRENT_LIMIT_MIN
-        )
-        self._attr_native_max_value = options.get(
-            CONF_CURRENT_LIMIT_MAX, DEFAULT_CURRENT_LIMIT_MAX
-        )
+        if vdef.key == "input_current_limit":
+            self._attr_native_min_value = options.get(
+                CONF_CURRENT_LIMIT_MIN, DEFAULT_CURRENT_LIMIT_MIN
+            )
+            self._attr_native_max_value = options.get(
+                CONF_CURRENT_LIMIT_MAX, DEFAULT_CURRENT_LIMIT_MAX
+            )
+        else:
+            self._attr_native_min_value = getattr(vdef, "min", 0.0)
+            self._attr_native_max_value = getattr(vdef, "max", 100.0)
         self._attr_native_step = vdef.step
         if vdef.unit:
             self._attr_native_unit_of_measurement = vdef.unit
