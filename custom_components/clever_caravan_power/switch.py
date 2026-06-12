@@ -6,7 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, RELAY_NAMES
+from .const import CONF_RELAY_NAME, DOMAIN, RELAY_NAMES
 from .entity import CcpEntity, async_setup_discovery
 
 
@@ -28,8 +28,10 @@ class CcpRelaySwitch(CcpEntity, SwitchEntity):
     def __init__(self, data, vdef, instance: str, relay: str) -> None:
         super().__init__(data, vdef, instance, f"relay_{relay}")
         self._relay = relay
-        relay_name = RELAY_NAMES.get(int(relay), f"Relay {relay}")
-        self._attr_name = relay_name
+        default = RELAY_NAMES.get(int(relay), f"Relay {relay}")
+        self._attr_name = data.entry.options.get(
+            CONF_RELAY_NAME.format(relay), default
+        )
         self._attr_unique_id = f"{self._hub.portal_id}_relay_{relay}"
         self._path = f"Relay/{relay}/State"
         self._apply_value(self._hub.get("system", instance, self._path))

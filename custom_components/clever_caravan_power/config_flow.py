@@ -14,6 +14,7 @@ from .const import (
     CONF_CURRENT_LIMIT_MAX,
     CONF_CURRENT_LIMIT_MIN,
     CONF_PORTAL_ID,
+    CONF_RELAY_NAME,
     CONF_SSH_KEY,
     CONF_USE_SSL,
     DEFAULT_CURRENT_LIMIT_MAX,
@@ -54,10 +55,21 @@ def _probe(user_input: dict[str, Any]) -> str | None:
         hub.stop()
 
 
+RELAY_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_RELAY_NAME.format(0), default="Relay 1"): str,
+        vol.Required(CONF_RELAY_NAME.format(1), default="Relay 2"): str,
+    }
+)
+
+
 class CcpConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle the initial setup."""
 
     VERSION = 1
+
+    def __init__(self) -> None:
+        self._data: dict[str, Any] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -73,14 +85,25 @@ class CcpConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(portal_id)
                 self._abort_if_unique_id_configured()
                 user_input[CONF_PORTAL_ID] = portal_id
-                return self.async_create_entry(
-                    title=f"Cerbo GX ({portal_id})", data=user_input
-                )
+                self._data = user_input
+                return await self.async_step_relays()
             errors.setdefault("base", "no_portal")
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
+
+    async def async_step_relays(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Name the Cerbo's two relays (e.g. Internal Fan / External Fan)."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=f"Cerbo GX ({self._data[CONF_PORTAL_ID]})",
+                data=self._data,
+                options=user_input,
+            )
+        return self.async_show_form(step_id="relays", data_schema=RELAY_SCHEMA)
 
     @staticmethod
     @callback
@@ -100,6 +123,14 @@ class CcpOptionsFlow(config_entries.OptionsFlow):
         options = self.config_entry.options
         schema = vol.Schema(
             {
+                vol.Required(
+                    CONF_RELAY_NAME.format(0),
+                    default=options.get(CONF_RELAY_NAME.format(0), "Relay 1"),
+                ): str,
+                vol.Required(
+                    CONF_RELAY_NAME.format(1),
+                    default=options.get(CONF_RELAY_NAME.format(1), "Relay 2"),
+                ): str,
                 vol.Required(
                     CONF_CURRENT_LIMIT_MIN,
                     default=options.get(CONF_CURRENT_LIMIT_MIN, DEFAULT_CURRENT_LIMIT_MIN),

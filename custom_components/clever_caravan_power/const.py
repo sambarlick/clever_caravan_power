@@ -11,6 +11,7 @@ CONF_USE_SSL = "use_ssl"
 CONF_CURRENT_LIMIT_MIN = "current_limit_min"
 CONF_CURRENT_LIMIT_MAX = "current_limit_max"
 CONF_SSH_KEY = "ssh_key_path"
+CONF_RELAY_NAME = "relay_{}_name"  # .format(relay_index)
 DEFAULT_SSH_KEY = "/config/.ssh/id_rsa"
 
 DEFAULT_PORT = 1883
@@ -106,6 +107,7 @@ class VSensorDef:
     entity_category: str | None = None
     enabled_default: bool = True
     suggested_precision: int | None = None
+    none_as_zero: bool = False  # Venus publishes null when source absent
 
 
 SENSOR_DEFS: tuple[VSensorDef, ...] = (
@@ -114,10 +116,11 @@ SENSOR_DEFS: tuple[VSensorDef, ...] = (
                DEV_GX, "W", "power", "measurement", "mdi:lightning-bolt",
                suggested_precision=0),
     VSensorDef("ac_consumption", "system", "Ac/Consumption/L1/Power", "AC Consumption",
-               DEV_GX, "W", "power", "measurement", suggested_precision=0),
+               DEV_GX, "W", "power", "measurement", suggested_precision=0,
+               none_as_zero=True),
     VSensorDef("shore_power", "system", "Ac/Grid/L1/Power", "Shore Power",
                DEV_GX, "W", "power", "measurement", "mdi:power-socket-au",
-               suggested_precision=0),
+               suggested_precision=0, none_as_zero=True),
     VSensorDef("battery_soc", "system", "Dc/Battery/Soc", "Battery SoC",
                DEV_BATTERY, "%", "battery", "measurement", suggested_precision=0),
     VSensorDef("battery_voltage", "system", "Dc/Battery/Voltage", "Battery Voltage",
@@ -272,16 +275,19 @@ class VBinarySensorDef:
     icon: str | None = None
     expire: int | None = None
     enabled_default: bool = True
+    none_as_zero: bool = False
 
 
 BINARY_SENSOR_DEFS: tuple[VBinarySensorDef, ...] = (
     # True whenever the shore lead is physically plugged in (AC input present),
     # even at zero draw — the Multiplus reports this directly.
     VBinarySensorDef("shore_connected", "vebus", "Ac/ActiveIn/Connected",
-                     "Shore Power Connected", "eq:1", DEV_GX, "plug"),
+                     "Shore Power Connected", "eq:1", DEV_GX, "plug",
+                     none_as_zero=True),
     # Faithful port of Sam's template: grid power actually flowing (> 0 W).
     VBinarySensorDef("shore_active", "system", "Ac/Grid/L1/Power",
-                     "Shore Power Active", "gt:0", DEV_GX, "power"),
+                     "Shore Power Active", "gt:0", DEV_GX, "power",
+                     none_as_zero=True),
     VBinarySensorDef("alt_charging", "alternator", "Dc/0/Power",
                      "Alternator {instance} Charging", "gt:0", DEV_ALTERNATOR,
                      "battery_charging", expire=10, enabled_default=False),

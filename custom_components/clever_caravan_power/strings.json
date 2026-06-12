@@ -11,6 +11,14 @@
           "password": "Password (optional)",
           "use_ssl": "Use SSL (port 8883)"
         }
+      },
+      "relays": {
+        "title": "Name the Cerbo GX relays",
+        "description": "Give the two relays meaningful names for this install (e.g. Internal Fan, External Fan). You can change these later in Options.",
+        "data": {
+          "relay_0_name": "Relay 1 name",
+          "relay_1_name": "Relay 2 name"
+        }
       }
     },
     "error": {
@@ -28,7 +36,9 @@
         "data": {
           "current_limit_min": "Input current limit \u2014 minimum (A)",
           "current_limit_max": "Input current limit \u2014 maximum (A)",
-          "ssh_key_path": "SSH private key path (for Reboot SSH button)"
+          "ssh_key_path": "SSH private key path (for Reboot SSH button)",
+          "relay_0_name": "Relay 1 name",
+          "relay_1_name": "Relay 2 name"
         }
       }
     }

@@ -52,6 +52,8 @@ class CcpBinarySensor(CcpEntity, BinarySensorEntity):
 
     @callback
     def _apply_value(self, value) -> None:
+        if value is None and self._def.none_as_zero:
+            value = 0
         self._attr_is_on = _evaluate(self._def.predicate, value)
         self._schedule_expiry()
 

@@ -81,6 +81,8 @@ class CcpSensor(CcpEntity, SensorEntity):
     @callback
     def _apply_value(self, value) -> None:
         vdef = self._def
+        if value is None and getattr(vdef, "none_as_zero", False):
+            value = 0
         if vdef.options_map is not None:
             try:
                 value = vdef.options_map.get(int(value), "Unknown")
